@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   status: { type: Boolean, default: false },
   isVerified: { type: Boolean, default: false },
   verifyCode: { type: String, nullable: true },
+  codeExpiredAt: { type: Date, nullable: true },
   expiredAt: { type: Date, nullable: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

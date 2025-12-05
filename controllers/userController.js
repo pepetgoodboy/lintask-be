@@ -14,6 +14,12 @@ import {
 import refreshTokenModel from "../models/refreshToken.js";
 import { sendResetPassword, sendVerifCode } from "./mailer.js";
 
+// Generate verification code
+const generateVerificationCode = () => {
+  const random = Math.floor(100000 + Math.random() * 900000);
+  return random.toString();
+};
+
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   try {
@@ -43,13 +49,10 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Generate verification code
-    const generateVerificationCode = () => {
-      const random = Math.floor(100000 + Math.random() * 900000);
-      return random.toString();
-    };
-
     const code = generateVerificationCode();
+
+    // Set code expired at for 1 minutes
+    const codeExpiredAt = new Date(Date.now() + 1 * 60 * 1000);
 
     const newUser = new userModel({
       name,
@@ -59,6 +62,7 @@ const registerUser = async (req, res) => {
       isVerified: false,
       verifyCode: code,
       expiredAt: null,
+      codeExpiredAt,
     });
 
     // Save user
@@ -75,6 +79,33 @@ const registerUser = async (req, res) => {
   }
 };
 
+const resendVerifCode = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email anda belum terdaftar!" });
+    }
+    if (user.isVerified) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email sudah terverifikasi!" });
+    }
+    const code = generateVerificationCode();
+    user.verifyCode = code;
+    user.codeExpiredAt = new Date(Date.now() + 1 * 60 * 1000);
+    await user.save();
+    await sendVerifCode(user.email, code);
+    return res
+      .status(200)
+      .json({ success: true, message: "Kode verifikasi berhasil dikirim" });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 const verifyUser = async (req, res) => {
   try {
     const { verifCode } = req.body;
@@ -84,8 +115,14 @@ const verifyUser = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Kode verifikasi salah!" });
     }
+    if (user.codeExpiredAt < new Date()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Kode verifikasi sudah kadaluarsa!" });
+    }
     user.isVerified = true;
     user.verifyCode = null;
+    user.codeExpiredAt = null;
     await user.save();
     return res
       .status(200)
@@ -244,7 +281,7 @@ const resetPass = async (req, res) => {
       if (err) {
         return res
           .status(400)
-          .json({ success: false, message: "Invalid or expired token" });
+          .json({ success: false, message: "Token tidak valid" });
       }
 
       const salt = await bcrypt.genSalt(10);
@@ -278,6 +315,7 @@ const profileUser = async (req, res) => {
 export {
   registerUser,
   verifyUser,
+  resendVerifCode,
   loginUser,
   profileUser,
   refreshUserToken,
