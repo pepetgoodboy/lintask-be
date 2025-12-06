@@ -51,8 +51,8 @@ const registerUser = async (req, res) => {
 
     const code = generateVerificationCode();
 
-    // Set code expired at for 1 minutes
-    const codeExpiredAt = new Date(Date.now() + 1 * 60 * 1000);
+    // Set code expired at for 5 minutes
+    const codeExpiredAt = new Date(Date.now() + 5 * 60 * 1000);
 
     const newUser = new userModel({
       name,
@@ -95,7 +95,7 @@ const resendVerifCode = async (req, res) => {
     }
     const code = generateVerificationCode();
     user.verifyCode = code;
-    user.codeExpiredAt = new Date(Date.now() + 1 * 60 * 1000);
+    user.codeExpiredAt = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
     await sendVerifCode(user.email, code);
     return res

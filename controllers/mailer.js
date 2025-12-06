@@ -53,7 +53,7 @@ const sendVerifCode = async (email, code) => {
           </div>
 
           <p style="font-size: 14px; color: #23355b;">
-            Kode ini berlaku selama <b>10 menit</b>. Jangan berikan kode ini kepada siapa pun.
+            Kode ini berlaku selama <b>5 menit</b>. Jangan berikan kode ini kepada siapa pun.
           </p>
 
           <p style="margin-top: 30px; font-size: 14px; color: #23355b;">
